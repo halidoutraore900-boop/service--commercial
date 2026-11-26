@@ -279,7 +279,13 @@ async function adminLogin(){
   const {error}=await sb.auth.signInWithPassword({email:$('l-e').toLowerCase(),password:$('l-pw')});
   if(error)return toast('Identifiants incorrects.');
   await refresh();
-  if(!S.isAdmin){await sb.auth.signOut();S.user=null;S.accounts=[];S.shops=[];S.products=[];return toast('Ce compte n’est pas administrateur.')}
+  if(!S.isAdmin){
+    const {data:{user}}=await sb.auth.getUser();
+    const r=user?await sb.from('profiles').select('email,is_admin').eq('id',user.id):{};
+    const info='Compte connecté : '+(user?user.email:'aucun')+' | Profil lu : '+JSON.stringify(r.data||null)+' | Erreur : '+(r.error?r.error.message:'aucune');
+    await sb.auth.signOut();S.user=null;S.accounts=[];S.shops=[];S.products=[];
+    document.getElementById('main').insertAdjacentHTML('beforeend','<div class="panel" style="border-color:var(--coral)"><strong>DIAGNOSTIC</strong><p>'+esc(info)+'</p></div>');
+    return toast('Ce compte n’est pas administrateur.')}
   go('admin');
 }
 async function logout(){if(sb)await sb.auth.signOut();S.user=null;S.me=null;S.isAdmin=false;S.accounts=[];S.shops=[];S.products=[];go('home')}
